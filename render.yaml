@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: laravel-task-api
+    env: docker
+    plan: free
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: Laravel Task API
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        generateValue: true
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: database/database.sqlite
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync

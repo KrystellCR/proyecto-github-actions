@@ -1,0 +1,35 @@
+# Imagen base con PHP 8.3 en modo CLI (sin Apache/Nginx)
+FROM php:8.3-cli
+
+# Directorio de trabajo dentro del contenedor
+WORKDIR /var/www/html
+
+# Instala dependencias del sistema:
+# git, unzip y extensiones necesarias de PHP (PDO + SQLite)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git unzip \
+    && docker-php-ext-install pdo pdo_sqlite \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia Composer desde la imagen oficial de Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Copia archivos de dependencias primero (para cache de Docker)
+COPY composer.json composer.lock ./
+
+# Instala dependencias PHP sin dev, optimizado para producción
+RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-scripts
+
+# Copia todo el proyecto al contenedor
+COPY . .
+
+# Optimiza autoload + descubre paquetes Laravel + permisos
+RUN composer dump-autoload --optimize \
+    && php artisan package:discover --ansi \
+    && chmod -R ug+rw storage bootstrap/cache database
+
+# Expone el puerto 8080 (para acceder desde fuera del contenedor)
+EXPOSE 8080
+
+# Comando que se ejecuta al iniciar el contenedor
+CMD ["sh", "docker/start.sh"]
