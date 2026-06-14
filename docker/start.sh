@@ -1,14 +1,17 @@
 #!/usr/bin/env sh
 set -e
 
-mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache database
+mkdir -p storage bootstrap/cache database
 
-if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
+# SQLite solo si se usa
+if [ "$DB_CONNECTION" = "sqlite" ]; then
     touch "${DB_DATABASE:-database/database.sqlite}"
 fi
 
-if [ -z "${APP_KEY:-}" ]; then
-    php artisan key:generate --force --no-interaction
+# SI NO EXISTE APP_KEY → error controlado
+if [ -z "$APP_KEY" ]; then
+    echo "ERROR: APP_KEY no configurado (Render o docker -e)"
+    exit 1
 fi
 
 php artisan migrate --force

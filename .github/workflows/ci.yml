@@ -1,20 +1,30 @@
+# Nombre del workflow que aparecerá en GitHub Actions.
 name: CI
 
+# Eventos que ejecutan el workflow.
 on:
+  # Se ejecuta al hacer push a la rama main.
   push:
     branches: [main]
+
+  # Se ejecuta cuando se crea o actualiza un Pull Request.
   pull_request:
+
+  # Permite ejecutarlo manualmente desde GitHub.
   workflow_dispatch:
 
 jobs:
+  # Job encargado de ejecutar las pruebas.
   tests:
     name: Tests
     runs-on: ubuntu-latest
 
     steps:
+      # Descarga el código del repositorio.
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Instala PHP y las extensiones necesarias.
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -22,44 +32,65 @@ jobs:
           extensions: pdo_sqlite
           coverage: none
 
+      # Instala dependencias de Composer.
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Prepara el entorno para ejecutar Laravel.
       - name: Prepare environment
         run: |
+          # Crea el archivo .env.
           cp .env.example .env
+
+          # Genera la APP_KEY.
           php artisan key:generate
+
+          # Crea la base de datos SQLite.
           touch database/database.sqlite
 
+      # Ejecuta los tests del proyecto.
       - name: Run tests
         run: php artisan test
 
+  # Job para verificar que la imagen Docker se construya correctamente.
   docker:
     name: Docker build
     runs-on: ubuntu-latest
+
+    # Solo se ejecuta si los tests pasan.
     needs: tests
 
     steps:
+      # Descarga el código.
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Construye la imagen Docker.
       - name: Build Docker image
         run: docker build -t laravel-task-api .
 
+  # Job de despliegue.
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
+
+    # Solo se ejecuta si tests y docker terminan correctamente.
     needs: [tests, docker]
+
+    # Solo despliega desde main y en push o ejecución manual.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
 
     steps:
+      # Llama al Deploy Hook de Render para iniciar el despliegue.
       - name: Trigger Render deploy hook
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
+          # Verifica que exista el secreto configurado en GitHub.
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
             echo "Missing RENDER_DEPLOY_HOOK_URL secret"
             exit 1
           fi
 
+          # Dispara el despliegue en Render.
           curl --fail --request POST "$RENDER_DEPLOY_HOOK_URL"
