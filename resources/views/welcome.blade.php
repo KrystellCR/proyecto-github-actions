@@ -239,7 +239,7 @@
     <main>
         <header>
             <div>
-                <h1>Laravel Task API</h1>
+                <h1>Laravel Task API TEST</h1>
                 <p>Interfaz simple para probar los endpoints usados por GitHub Actions y Render.</p>
             </div>
             <span class="status" id="status">Cargando API...</span>
